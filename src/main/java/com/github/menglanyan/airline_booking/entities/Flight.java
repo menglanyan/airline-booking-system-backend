@@ -42,6 +42,10 @@ public class Flight {
 
     private BigDecimal basePrice;
 
+    private Integer totalSeats;
+
+    private Integer availableSeats;
+
     @ManyToOne
     private User assignedPilot;
 

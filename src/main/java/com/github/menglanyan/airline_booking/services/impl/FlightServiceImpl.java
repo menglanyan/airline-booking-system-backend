@@ -71,6 +71,8 @@ public class FlightServiceImpl implements FlightService {
         flightToSave.setArrivalTime(createFlightRequest.getArrivalTime());
         flightToSave.setStatus(FlightStatus.SCHEDULED);
         flightToSave.setBasePrice(createFlightRequest.getBasePrice());
+        flightToSave.setTotalSeats(createFlightRequest.getTotalSeats());
+        flightToSave.setAvailableSeats(createFlightRequest.getTotalSeats());
 
         // Assign pilot to the flight(get and validate the pilot)
         if (createFlightRequest.getPilotId() != null) {
@@ -155,6 +157,17 @@ public class FlightServiceImpl implements FlightService {
 
         if (createFlightRequest.getBasePrice() != null) {
             existingflight.setBasePrice(createFlightRequest.getBasePrice());
+        }
+
+        if (createFlightRequest.getTotalSeats() != null) {
+            int bookedSeats = existingflight.getTotalSeats() - existingflight.getAvailableSeats();
+
+            if (createFlightRequest.getTotalSeats() < bookedSeats) {
+                throw new BadRequestException("Total seats cannot be less than already booked seats");
+            }
+
+            existingflight.setTotalSeats(createFlightRequest.getTotalSeats());
+            existingflight.setAvailableSeats(createFlightRequest.getTotalSeats() - bookedSeats);
         }
 
         if (createFlightRequest.getStatus() != null) {

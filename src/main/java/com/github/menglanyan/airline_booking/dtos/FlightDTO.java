@@ -30,6 +30,10 @@ public class FlightDTO {
 
     private BigDecimal basePrice;
 
+    private Integer totalSeats;
+
+    private Integer availableSeats;
+
     private UserDTO assignedPilot;
 
     private List<BookingDTO> booking;

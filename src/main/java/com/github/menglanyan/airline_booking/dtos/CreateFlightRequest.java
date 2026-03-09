@@ -41,5 +41,9 @@ public class CreateFlightRequest {
     @Positive(message = "Base price must be positive")
     private BigDecimal basePrice;
 
+    @NotNull(message = "Total seats cannot be null")
+    @Positive(message = "Total seats must be positive")
+    private Integer totalSeats;
+
     private Long pilotId;
 }

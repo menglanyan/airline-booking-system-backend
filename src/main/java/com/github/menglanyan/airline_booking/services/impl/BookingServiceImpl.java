@@ -59,6 +59,15 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("You can only book a flight that is scheduled");
         }
 
+        int passangerCount = createBookingRequest.getPassengers().size();
+
+        if (flight.getAvailableSeats() < passangerCount) {
+            throw new BadRequestException("Not enough seats available");
+        }
+
+        flight.setAvailableSeats(flight.getAvailableSeats() - passangerCount);
+        flightRepo.save(flight);
+
         Booking booking = new Booking();
         booking.setBookingReference(generateBookingReference());
         booking.setUser(user);
