@@ -25,7 +25,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.awt.print.Book;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -175,6 +174,33 @@ public class BookingServiceImpl implements BookingService {
         return Response.builder()
                 .statusCode(HttpStatus.OK.value())
                 .message("Booking Updated Successfully")
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public Response<?> cancelBooking(Long id) {
+        Booking booking = bookingRepo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Booking Not Found"));
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new BadRequestException("Booking Already Canceled");
+        }
+
+        Flight flight = booking.getFlight();
+
+        int passengerCount = booking.getPassengers().size();
+
+        flight.setAvailableSeats(flight.getAvailableSeats() + passengerCount);
+        flightRepo.save(flight);
+
+        booking.setStatus(BookingStatus.CANCELLED);
+
+        bookingRepo.save(booking);
+
+        return Response.builder()
+                .statusCode(HttpStatus.OK.value())
+                .message("Booking cancelled successfully")
                 .build();
     }
 

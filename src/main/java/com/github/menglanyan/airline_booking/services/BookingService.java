@@ -19,4 +19,6 @@ public interface BookingService {
     Response<List<BookingDTO>> getMyBookings();
 
     Response<?> updateBookingStatus(Long id, BookingStatus bookingStatus);
+
+    Response<?> cancelBooking(Long id);
 }
