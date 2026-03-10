@@ -36,8 +36,10 @@ public class FlightController {
     }
 
     @GetMapping
-    public ResponseEntity<Response<List<FlightDTO>>> getAllFlights() {
-        return ResponseEntity.ok(flightService.getAllFlights());
+    public ResponseEntity<Response<List<FlightDTO>>> getAllFlights(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(flightService.getAllFlights(page, size));
     }
 
     @PutMapping

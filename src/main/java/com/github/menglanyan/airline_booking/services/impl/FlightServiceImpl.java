@@ -20,6 +20,9 @@ import com.github.menglanyan.airline_booking.services.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -119,15 +122,20 @@ public class FlightServiceImpl implements FlightService {
     }
 
     @Override
-    public Response<List<FlightDTO>> getAllFlights() {
-        Sort sortByIdDesc = Sort.by(Sort.Direction.DESC, "id");
+    public Response<List<FlightDTO>> getAllFlights(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
-        List<FlightDTO> flights = flightRepo.findAll(sortByIdDesc).stream()
+        Page<Flight> flightPage = flightRepo.findAll(pageable);
+
+        List<FlightDTO> flights = flightPage.getContent().stream()
                 .map(flight -> {
                     FlightDTO flightDTO = modelMapper.map(flight, FlightDTO.class);
+
+                    // Break the bidirectional relationship to avoid recursive loop during serialization
                     if (flightDTO.getBooking() != null) {
                         flightDTO.getBooking().forEach(bookingDTO -> bookingDTO.setFlight(null));
                     }
+
                     return flightDTO;
                 })
                 .toList();

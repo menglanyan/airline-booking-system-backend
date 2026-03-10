@@ -32,8 +32,11 @@ public class BookingController {
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'PILOT')")
-    public ResponseEntity<Response<List<BookingDTO>>> getAllBookings() {
-        return ResponseEntity.ok(bookingService.getAllBookings());
+    public ResponseEntity<Response<List<BookingDTO>>> getAllBookings(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(bookingService.getAllBookings(page, size));
     }
 
     @GetMapping("/me")

@@ -21,7 +21,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -146,10 +148,12 @@ class FlightServiceImplTest {
         Flight f1 = new Flight(); f1.setId(1L);
         Flight f2 = new Flight(); f2.setId(2L);
 
-        when(flightRepo.findAll(Sort.by(Sort.Direction.DESC, "id")))
-                .thenReturn(List.of(f1, f2));
+        Page<Flight> flightPage = new PageImpl<>(List.of(f1, f2));
 
-        var resp = service.getAllFlights();
+        when(flightRepo.findAll(any(Pageable.class)))
+                .thenReturn(flightPage);
+
+        var resp = service.getAllFlights(0, 5);
         assertEquals(200, resp.getStatusCode());
         assertEquals(2, resp.getData().size());
     }

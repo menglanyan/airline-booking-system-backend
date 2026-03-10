@@ -20,6 +20,9 @@ import com.github.menglanyan.airline_booking.services.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -117,22 +120,28 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public Response<List<BookingDTO>> getAllBookings() {
-        List<Booking> allBookings = bookingRepo.findAll(Sort.by(Sort.Direction.DESC, "id"));
+    public Response<List<BookingDTO>> getAllBookings(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
-        List<BookingDTO> bookingDTOS = allBookings.stream()
+        Page<Booking> bookingPage = bookingRepo.findAll(pageable);
+
+        List<BookingDTO> bookingDTOS = bookingPage.getContent().stream()
                 .map(booking -> {
                     BookingDTO bookingDTO = modelMapper.map(booking, BookingDTO.class);
+
                     // Break the bidirectional relationship to avoid recursive loop during serialization:
                     // FlightDTO → BookingDTO → FlightDTO → BookingDTO ...
-                    bookingDTO.getFlight().setBooking(null);
+                    if (bookingDTO.getFlight() != null) {
+                        bookingDTO.getFlight().setBooking(null);
+                    }
+
                     return bookingDTO;
                 })
                 .toList();
 
         return Response.<List<BookingDTO>>builder()
                 .statusCode(HttpStatus.OK.value())
-                .message(bookingDTOS.isEmpty() ? "No Booking Found" : "All Bookings Retrieved Successfully")
+                .message(bookingDTOS.isEmpty() ? "No Booking Found" : "Bookings Retrieved Successfully")
                 .data(bookingDTOS)
                 .build();
     }

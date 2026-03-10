@@ -16,7 +16,7 @@ public interface FlightService {
 
     Response<FlightDTO> getFlightById(Long id);
 
-    Response<List<FlightDTO>> getAllFlights();
+    Response<List<FlightDTO>> getAllFlights(int page, int size);
 
     Response<?> updateFlight(CreateFlightRequest createFlightRequest);
 

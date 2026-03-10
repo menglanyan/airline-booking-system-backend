@@ -22,7 +22,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -55,7 +57,11 @@ class BookingServiceImplTest {
         user.setId(1L);
         when(userService.currentUser()).thenReturn(user);
 
-        Flight flight = new Flight(); flight.setId(10L); flight.setStatus(FlightStatus.SCHEDULED);
+        Flight flight = new Flight();
+        flight.setId(10L);
+        flight.setStatus(FlightStatus.SCHEDULED);
+        flight.setAvailableSeats(10);
+
         when(flightRepo.findById(10L)).thenReturn(Optional.of(flight));
 
         Booking saved = new Booking(); saved.setId(100L);
@@ -105,9 +111,12 @@ class BookingServiceImplTest {
     void getAllBookings_success() {
         Booking b1 = new Booking(); b1.setId(1L); b1.setFlight(new Flight());
         Booking b2 = new Booking(); b2.setId(2L); b2.setFlight(new Flight());
-        when(bookingRepo.findAll(Sort.by(Sort.Direction.DESC, "id"))).thenReturn(List.of(b1, b2));
 
-        var resp = service.getAllBookings();
+        Page<Booking> bookingPage = new PageImpl<>(List.of(b1, b2));
+
+        when(bookingRepo.findAll(any(Pageable.class))).thenReturn(bookingPage);
+
+        var resp = service.getAllBookings(0,2);
         assertEquals(200, resp.getStatusCode());
         assertEquals(2, resp.getData().size());
     }

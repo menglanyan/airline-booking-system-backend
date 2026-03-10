@@ -14,7 +14,7 @@ public interface BookingService {
 
     Response<BookingDTO> getBookingById(Long id);
 
-    Response<List<BookingDTO>> getAllBookings();
+    Response<List<BookingDTO>> getAllBookings(int page, int size);
 
     Response<List<BookingDTO>> getMyBookings();
 
