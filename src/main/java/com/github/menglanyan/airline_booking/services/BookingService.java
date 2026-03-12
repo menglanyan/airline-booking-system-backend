@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface BookingService {
 
-    Response<?> createBooking(CreateBookingRequest createBookingRequest);
+    Response<?> createBooking(CreateBookingRequest createBookingRequest, String idempotencyKey);
 
     Response<BookingDTO> getBookingById(Long id);
 

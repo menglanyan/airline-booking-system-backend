@@ -1,5 +1,6 @@
 package com.github.menglanyan.airline_booking.controller;
 
+import com.github.menglanyan.airline_booking.constants.IdempotencyConstants;
 import com.github.menglanyan.airline_booking.dtos.BookingDTO;
 import com.github.menglanyan.airline_booking.dtos.CreateBookingRequest;
 import com.github.menglanyan.airline_booking.dtos.Response;
@@ -21,8 +22,10 @@ public class BookingController {
     private final BookingService bookingService;
 
     @PostMapping
-    public ResponseEntity<Response<?>> createBooking(@Valid @RequestBody CreateBookingRequest createBookingRequest) {
-        return ResponseEntity.ok(bookingService.createBooking(createBookingRequest));
+    public ResponseEntity<Response<?>> createBooking(
+            @RequestHeader(value = IdempotencyConstants.IDEMPOTENCY_KEY_HEADER) String idempotencyKey,
+            @Valid @RequestBody CreateBookingRequest createBookingRequest) {
+        return ResponseEntity.ok(bookingService.createBooking(createBookingRequest, idempotencyKey));
     }
 
     @GetMapping("/{id}")

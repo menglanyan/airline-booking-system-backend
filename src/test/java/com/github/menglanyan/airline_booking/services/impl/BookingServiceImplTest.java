@@ -1,5 +1,6 @@
 package com.github.menglanyan.airline_booking.services.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.menglanyan.airline_booking.dtos.BookingDTO;
 import com.github.menglanyan.airline_booking.dtos.CreateBookingRequest;
 import com.github.menglanyan.airline_booking.dtos.PassengerDTO;
@@ -13,6 +14,7 @@ import com.github.menglanyan.airline_booking.enums.PassengerType;
 import com.github.menglanyan.airline_booking.exceptions.BadRequestException;
 import com.github.menglanyan.airline_booking.repo.BookingRepo;
 import com.github.menglanyan.airline_booking.repo.FlightRepo;
+import com.github.menglanyan.airline_booking.repo.IdempotencyKeyRepo;
 import com.github.menglanyan.airline_booking.repo.PassengerRepo;
 import com.github.menglanyan.airline_booking.services.EmailNotificationService;
 import com.github.menglanyan.airline_booking.services.UserService;
@@ -40,15 +42,22 @@ class BookingServiceImplTest {
     @Mock private FlightRepo flightRepo;
     @Mock private PassengerRepo passengerRepo;
     @Mock private EmailNotificationService emailService;
+    @Mock private IdempotencyKeyRepo idempotencyKeyRepo;
 
     // use real mapper for simplicity
     private ModelMapper modelMapper;
+    private ObjectMapper objectMapper;
     private BookingServiceImpl service;
 
     @BeforeEach
     void setup() {
         modelMapper = new ModelMapper();
-        service = new BookingServiceImpl(bookingRepo, userService, flightRepo, passengerRepo, modelMapper, emailService);
+        objectMapper = new ObjectMapper();
+
+        service = new BookingServiceImpl(
+                bookingRepo, userService, flightRepo, passengerRepo,
+                modelMapper, emailService, idempotencyKeyRepo, objectMapper
+        );
     }
 
     @Test
@@ -74,10 +83,14 @@ class BookingServiceImplTest {
                 new PassengerDTO(2L, "Bob", "Uilrich","B456", PassengerType.ADULT, "5F", null)
         ));
 
-        Response<?> resp = service.createBooking(req);
+        when(idempotencyKeyRepo.findByIdempotencyKey(any()))
+                .thenReturn(Optional.empty());
+
+        Response<?> resp = service.createBooking(req, "test-key-1");
         assertEquals(200, resp.getStatusCode());
         verify(bookingRepo).save(any(Booking.class));
         verify(passengerRepo).saveAll(anyList());
+        verify(idempotencyKeyRepo).save(any());
         verify(emailService).sendBookingTicketEmail(saved);
     }
 
@@ -90,7 +103,7 @@ class BookingServiceImplTest {
         CreateBookingRequest req = new CreateBookingRequest();
         req.setFlightId(99L);
 
-        assertThrows(BadRequestException.class, () -> service.createBooking(req));
+        assertThrows(BadRequestException.class, () -> service.createBooking(req, "test-key-2"));
         verifyNoInteractions(passengerRepo, emailService);
     }
 

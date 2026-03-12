@@ -1,18 +1,17 @@
 package com.github.menglanyan.airline_booking.services.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.menglanyan.airline_booking.dtos.BookingDTO;
 import com.github.menglanyan.airline_booking.dtos.CreateBookingRequest;
 import com.github.menglanyan.airline_booking.dtos.Response;
-import com.github.menglanyan.airline_booking.entities.Booking;
-import com.github.menglanyan.airline_booking.entities.Flight;
-import com.github.menglanyan.airline_booking.entities.Passenger;
-import com.github.menglanyan.airline_booking.entities.User;
+import com.github.menglanyan.airline_booking.entities.*;
 import com.github.menglanyan.airline_booking.enums.BookingStatus;
 import com.github.menglanyan.airline_booking.enums.FlightStatus;
 import com.github.menglanyan.airline_booking.exceptions.BadRequestException;
 import com.github.menglanyan.airline_booking.exceptions.NotFoundException;
 import com.github.menglanyan.airline_booking.repo.BookingRepo;
 import com.github.menglanyan.airline_booking.repo.FlightRepo;
+import com.github.menglanyan.airline_booking.repo.IdempotencyKeyRepo;
 import com.github.menglanyan.airline_booking.repo.PassengerRepo;
 import com.github.menglanyan.airline_booking.services.BookingService;
 import com.github.menglanyan.airline_booking.services.EmailNotificationService;
@@ -28,6 +27,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -49,9 +50,39 @@ public class BookingServiceImpl implements BookingService {
 
     private final EmailNotificationService emailNotificationService;
 
+    private final IdempotencyKeyRepo idempotencyKeyRepo;
+
+    private final ObjectMapper objectMapper;
+
     @Override
     @Transactional
-    public Response<?> createBooking(CreateBookingRequest createBookingRequest) {
+    public Response<?> createBooking(CreateBookingRequest createBookingRequest, String idempotencyKey) {
+
+        String requestHash = generateRequestHash(createBookingRequest);
+
+        IdempotencyKey existingKey = idempotencyKeyRepo.findByIdempotencyKey(idempotencyKey)
+                .orElse(null);
+
+        if (existingKey != null) {
+            if (!existingKey.getRequestHash().equals(requestHash)) {
+                throw new BadRequestException("Idempotency Key cannot be reused with a different request body");
+            }
+
+            Booking existingBooking = bookingRepo.findById(existingKey.getBookingId())
+                    .orElseThrow(() -> new NotFoundException("Existing booking not found"));
+
+            BookingDTO bookingDTO = modelMapper.map(existingBooking,BookingDTO.class);
+            // Break the bidirectional relationship to avoid recursive loop during serialization:
+            // FlightDTO → BookingDTO → FlightDTO → BookingDTO ...
+            bookingDTO.getFlight().setBooking(null);
+
+            return Response.builder()
+                    .statusCode(HttpStatus.OK.value())
+                    .message("Duplicate request detected. Returning existing booking")
+                    .data(bookingDTO)
+                    .build();
+        }
+
         User user = userService.currentUser();
 
         Flight flight = flightRepo.findById(createBookingRequest.getFlightId())
@@ -93,6 +124,15 @@ public class BookingServiceImpl implements BookingService {
 
             savedBooking.setPassengers(passengers);
         }
+
+        IdempotencyKey key = IdempotencyKey.builder()
+                .idempotencyKey(idempotencyKey)
+                .requestHash(requestHash)
+                .bookingId(savedBooking.getId())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        idempotencyKeyRepo.save(key);
 
         emailNotificationService.sendBookingTicketEmail(savedBooking);
 
@@ -215,5 +255,24 @@ public class BookingServiceImpl implements BookingService {
 
     private String generateBookingReference() {
         return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    private String generateRequestHash(CreateBookingRequest request) {
+        try {
+            String json = objectMapper.writeValueAsString(request);
+
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = messageDigest.digest(json.getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder hex = new StringBuilder();
+
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+
+            return hex.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Fail to generate request hash");
+        }
     }
 }
