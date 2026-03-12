@@ -28,6 +28,10 @@ public class Flight {
     @Enumerated(EnumType.STRING)
     private FlightStatus status;
 
+    @Version
+    @Column(nullable = false)
+    private Long version = 0L;
+
     @ManyToOne
     @JoinColumn(name = "departure_airport_id")
     private Airport departureAirport;
