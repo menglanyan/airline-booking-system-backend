@@ -50,7 +50,9 @@ public class SecurityFilter {
                         .requestMatchers(HttpMethod.GET, "/api/airports/**").permitAll()
 
                         // Swagger docs public
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers(
+                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/actuator/health"
+                        ).permitAll()
 
                         // Everything else requires authentication
                         .anyRequest().authenticated())
