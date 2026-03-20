@@ -113,5 +113,11 @@ git clone https://github.com/menglanyan/airline-booking-system-backend.git
 cd airline-booking-system-backend
 docker-compose up --build
 ```
-API runs on:
+- API runs on:
 http://localhost:8082
+
+Before running the application, create a `.env` file based on the provided example:
+```bash
+cp .env.example .env
+```
+Update the environment variables as needed before starting the services.
