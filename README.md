@@ -11,6 +11,12 @@ https://airline-booking.menglanyan.dev
 **Live Backend Swagger UI**:  
 https://airline-api.menglanyan.dev/swagger-ui/index.html
 
+**Demo Account**   
+Email: `admin@test.com`   
+Password: `password123`     
+This application uses sample data for demonstration purposes.  
+The database is automatically reset twice a day to maintain a consistent state.
+
 **Frontend Repository**:  
 https://github.com/menglanyan/airline-booking-system-frontend
 
